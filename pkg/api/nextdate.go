@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+// DateFormat — формат даты, используемый в планировщике.
+const DateFormat = "20060102"
+
 // NextDate вычисляет следующую дату для задачи по правилу повторения.
 // Поддерживаемые правила: y — ежегодно, d N — каждые N дней (1-400).
 func NextDate(now time.Time, date string, repeat string) (string, error) {
@@ -15,7 +18,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		return "", errors.New("repeat is empty")
 	}
 
-	start, err := time.Parse("20060102", date)
+	start, err := time.Parse(DateFormat, date)
 	if err != nil {
 		return "", err
 	}
@@ -28,7 +31,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		for !next.After(now) {
 			next = next.AddDate(1, 0, 0)
 		}
-		return next.Format("20060102"), nil
+		return next.Format(DateFormat), nil
 
 	case "d":
 		if len(parts) < 2 {
@@ -42,7 +45,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		for !next.After(now) {
 			next = next.AddDate(0, 0, n)
 		}
-		return next.Format("20060102"), nil
+		return next.Format(DateFormat), nil
 
 	default:
 		return "", errors.New("unknown repeat rule")

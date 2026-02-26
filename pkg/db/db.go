@@ -16,20 +16,26 @@ func InitDB() (*sql.DB, error) {
 		dbFile = envFile
 	}
 
+	_, err := os.Stat(dbFile)
+	install := os.IsNotExist(err)
+
 	db, err := sql.Open("sqlite", dbFile)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS scheduler (
-		id      INTEGER PRIMARY KEY AUTOINCREMENT,
-		date    TEXT NOT NULL,
-		title   TEXT NOT NULL,
-		comment TEXT DEFAULT '',
-		repeat  TEXT DEFAULT ''
-	)`)
-	if err != nil {
-		return nil, err
+	if install {
+		_, err = db.Exec(`CREATE TABLE IF NOT EXISTS scheduler (
+			id      INTEGER PRIMARY KEY AUTOINCREMENT,
+			date    TEXT NOT NULL,
+			title   TEXT NOT NULL,
+			comment TEXT DEFAULT '',
+			repeat  TEXT DEFAULT ''
+		);
+		CREATE INDEX IF NOT EXISTS idx_scheduler_date ON scheduler(date)`)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return db, nil

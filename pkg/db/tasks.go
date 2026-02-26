@@ -8,9 +8,9 @@ import (
 )
 
 // AddTask добавляет новую задачу в базу данных и возвращает её id.
-func AddTask(db *sql.DB, date, title, comment, repeat string) (int64, error) {
+func AddTask(db *sql.DB, task *Task) (int64, error) {
 	res, err := db.Exec(`INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)`,
-		date, title, comment, repeat)
+		task.Date, task.Title, task.Comment, task.Repeat)
 	if err != nil {
 		return 0, err
 	}
@@ -18,53 +18,43 @@ func AddTask(db *sql.DB, date, title, comment, repeat string) (int64, error) {
 }
 
 // GetTasks возвращает список ближайших задач, отсортированных по дате.
-func GetTasks(db *sql.DB) ([]map[string]string, error) {
+func GetTasks(db *sql.DB) ([]*Task, error) {
 	rows, err := db.Query(`SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT 50`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	tasks := []map[string]string{}
+	tasks := []*Task{}
 	for rows.Next() {
 		var id int64
-		var date, title, comment, repeat string
-		if err := rows.Scan(&id, &date, &title, &comment, &repeat); err != nil {
+		var task Task
+		if err := rows.Scan(&id, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
 			return nil, err
 		}
-		tasks = append(tasks, map[string]string{
-			"id":      strconv.FormatInt(id, 10),
-			"date":    date,
-			"title":   title,
-			"comment": comment,
-			"repeat":  repeat,
-		})
+		task.ID = strconv.FormatInt(id, 10)
+		tasks = append(tasks, &task)
 	}
 	return tasks, nil
 }
 
 // GetTask возвращает задачу по id.
-func GetTask(db *sql.DB, id string) (map[string]string, error) {
+func GetTask(db *sql.DB, id string) (*Task, error) {
 	var tid int64
-	var date, title, comment, repeat string
+	var task Task
 	err := db.QueryRow(`SELECT id, date, title, comment, repeat FROM scheduler WHERE id=?`, id).
-		Scan(&tid, &date, &title, &comment, &repeat)
+		Scan(&tid, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{
-		"id":      strconv.FormatInt(tid, 10),
-		"date":    date,
-		"title":   title,
-		"comment": comment,
-		"repeat":  repeat,
-	}, nil
+	task.ID = strconv.FormatInt(tid, 10)
+	return &task, nil
 }
 
 // UpdateTask обновляет задачу по id. Возвращает ошибку, если задача не найдена.
-func UpdateTask(db *sql.DB, id, date, title, comment, repeat string) error {
+func UpdateTask(db *sql.DB, task *Task) error {
 	res, err := db.Exec(`UPDATE scheduler SET date=?, title=?, comment=?, repeat=? WHERE id=?`,
-		date, title, comment, repeat, id)
+		task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 	if err != nil {
 		return err
 	}

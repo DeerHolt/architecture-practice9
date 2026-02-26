@@ -18,7 +18,7 @@ func HandleNextDate(w http.ResponseWriter, r *http.Request) {
 	date := r.FormValue("date")
 	repeat := r.FormValue("repeat")
 
-	now, err := time.Parse("20060102", nowStr)
+	now, err := time.Parse(DateFormat, nowStr)
 	if err != nil {
 		http.Error(w, "invalid now", http.StatusBadRequest)
 		return
@@ -71,13 +71,13 @@ func addTask(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
-	today := now.Format("20060102")
+	today := now.Format(DateFormat)
 
 	if task.Date == "" || task.Date == "today" {
 		task.Date = today
 	}
 
-	_, err := time.Parse("20060102", task.Date)
+	_, err := time.Parse(DateFormat, task.Date)
 	if err != nil {
 		log.Printf("addTask: time.Parse error: %v", err)
 		jsonError(w, "invalid date")
@@ -107,7 +107,12 @@ func addTask(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	id, err := appdb.AddTask(db, task.Date, task.Title, task.Comment, task.Repeat)
+	id, err := appdb.AddTask(db, &appdb.Task{
+		Date:    task.Date,
+		Title:   task.Title,
+		Comment: task.Comment,
+		Repeat:  task.Repeat,
+	})
 	if err != nil {
 		log.Printf("addTask: db error: %v", err)
 		jsonError(w, "db error")
@@ -178,13 +183,13 @@ func editTask(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
-	today := now.Format("20060102")
+	today := now.Format(DateFormat)
 
 	if task.Date == "" || task.Date == "today" {
 		task.Date = today
 	}
 
-	_, err := time.Parse("20060102", task.Date)
+	_, err := time.Parse(DateFormat, task.Date)
 	if err != nil {
 		log.Printf("editTask: time.Parse error: %v", err)
 		jsonError(w, "invalid date")
@@ -213,7 +218,13 @@ func editTask(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := appdb.UpdateTask(db, task.ID, task.Date, task.Title, task.Comment, task.Repeat); err != nil {
+	if err := appdb.UpdateTask(db, &appdb.Task{
+		ID:      task.ID,
+		Date:    task.Date,
+		Title:   task.Title,
+		Comment: task.Comment,
+		Repeat:  task.Repeat,
+	}); err != nil {
 		log.Printf("editTask: UpdateTask error: %v", err)
 		jsonError(w, "task not found")
 		return
@@ -241,8 +252,9 @@ func HandleTaskDone(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		if task["repeat"] == "" {
+		if task.Repeat == "" {
 			if err := appdb.DeleteTask(db, id); err != nil {
+				log.Printf("HandleTaskDone: DeleteTask error: %v", err)
 				jsonError(w, "db error")
 				return
 			}
@@ -250,14 +262,20 @@ func HandleTaskDone(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		next, err := NextDate(time.Now(), task["date"], task["repeat"])
+		next, err := NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
 			log.Printf("HandleTaskDone: NextDate error: %v", err)
 			jsonError(w, "invalid repeat")
 			return
 		}
 
-		if err := appdb.UpdateTask(db, id, next, task["title"], task["comment"], task["repeat"]); err != nil {
+		if err := appdb.UpdateTask(db, &appdb.Task{
+			ID:      task.ID,
+			Date:    next,
+			Title:   task.Title,
+			Comment: task.Comment,
+			Repeat:  task.Repeat,
+		}); err != nil {
 			log.Printf("HandleTaskDone: UpdateTask error: %v", err)
 			jsonError(w, "db error")
 			return
