@@ -21,7 +21,7 @@ func AddTask(db *sql.DB, task *Task) (int64, error) {
 
 // GetTasks возвращает список ближайших задач, отсортированных по дате.
 func GetTasks(db *sql.DB) ([]*Task, error) {
-	rows, err := db.Query(`SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT 50`)
+	rows, err := db.Query(`SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT ?`, TasksLimit)
 	if err != nil {
 		return nil, err
 	}
