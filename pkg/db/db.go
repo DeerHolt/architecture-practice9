@@ -34,6 +34,7 @@ func InitDB() (*sql.DB, error) {
 		);
 		CREATE INDEX IF NOT EXISTS idx_scheduler_date ON scheduler(date)`)
 		if err != nil {
+			db.Close()
 			return nil, err
 		}
 	}

@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+const TasksLimit = 50
+
 // AddTask добавляет новую задачу в базу данных и возвращает её id.
 func AddTask(db *sql.DB, task *Task) (int64, error) {
 	res, err := db.Exec(`INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)`,
@@ -34,6 +36,9 @@ func GetTasks(db *sql.DB) ([]*Task, error) {
 		}
 		task.ID = strconv.FormatInt(id, 10)
 		tasks = append(tasks, &task)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return tasks, nil
 }
